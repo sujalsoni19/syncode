@@ -3,6 +3,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { sendEmail } from "../utils/sendEmail.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -267,6 +269,82 @@ const changePassword = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Password changed successfully"));
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  let { email } = req.body;
+
+  if (!email || !email.trim()) {
+    throw new ApiError(400, "email is required");
+  }
+
+  email = email.trim().toLowerCase();
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "If the email exists, reset link sent"));
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  user.passwordResetToken = hashedToken;
+  user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  await user.save({ validateBeforeSave: false });
+
+  const resetURL = `${process.env.CORS_ORIGIN}/reset-password/${resetToken}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: "Password Reset",
+    text: `Reset your password using this link:
+${resetURL}
+
+This link expires in 10 minutes.`,
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset link sent to email"));
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    throw new ApiError(400, "Token and new password are required");
+  }
+
+  // hash incoming token
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Token is invalid or expired");
+  }
+
+  user.password = newPassword;
+
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset successful"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -274,5 +352,7 @@ export {
   refreshAccessToken,
   getCurrentUser,
   updateUser,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword,
 };
