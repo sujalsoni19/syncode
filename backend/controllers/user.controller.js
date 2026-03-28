@@ -192,4 +192,87 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, req.user, "current user fetched successfully"));
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser };
+const updateUser = asyncHandler(async (req, res) => {
+  let { fullname, username } = req.body;
+
+  if (!fullname && !username) {
+    throw new ApiError(400, "At least one field must be provided");
+  }
+
+  const updates = {};
+
+  if (fullname) {
+    updates.fullname = fullname.trim();
+  }
+
+  if (username) {
+    username = username.trim().toLowerCase();
+
+    if (username !== req.user.username) {
+      const existingUser = await User.findOne({ username });
+
+      if (existingUser) {
+        throw new ApiError(400, "Username already exists");
+      }
+    }
+
+    updates.username = username;
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updates },
+    {
+      returnDocument: "after",
+      runValidators: true,
+    },
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User updated successfully"));
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  let { oldpassword, newpassword } = req.body;
+
+  oldpassword = oldpassword?.trim();
+  newpassword = newpassword?.trim();
+
+  if (!oldpassword || !newpassword) {
+    throw new ApiError(400, "Both fields are required");
+  }
+
+  const user = await User.findById(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(oldpassword);
+
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid old password");
+  }
+
+  if (oldpassword === newpassword) {
+    throw new ApiError(400, "New password cannot be same as old password");
+  }
+
+  user.password = newpassword;
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+  updateUser,
+  changePassword
+};
