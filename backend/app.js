@@ -22,6 +22,10 @@ import userRouter from "./routes/user.route.js";
 //http://localhost:4000/api/v1/users/register
 app.use("/api/v1/users", userRouter);
 
+import roomRouter from "./routes/room.route.js";
+
+app.use("/api/v1/rooms", roomRouter);
+
 // import global error handler
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
