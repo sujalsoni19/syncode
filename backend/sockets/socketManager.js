@@ -1,6 +1,7 @@
 import joinRoom from "./handler/joinroom.handler.js";
 import codeChange from "./handler/codeChange.handler.js";
 import syncCode from "./handler/syncCode.handler.js";
+import languageChange from "./handler/languageChange.handler.js";
 import {
   findParticipantRoom,
   removeParticipant,
@@ -12,6 +13,7 @@ const socketManager = (io) => {
     joinRoom(socket);
     syncCode(socket, io);
     codeChange(socket);
+    languageChange(socket);
 
     socket.on("disconnect", () => {
       const roomId = findParticipantRoom(socket.id);
