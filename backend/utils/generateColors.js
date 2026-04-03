@@ -40,8 +40,8 @@ export const colors = [
 //   }
 // };
 
-const generateColor = () => {
-  const usedColors = getParticipants().map(p => p.color);
+const generateColor = (roomId) => {
+  const usedColors = getParticipants(roomId).map(p => p.color);
 
   return colors.find(color => !usedColors.includes(color));
 };

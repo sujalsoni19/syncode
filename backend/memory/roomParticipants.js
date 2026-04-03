@@ -1,4 +1,3 @@
-
 const roomParticipants = {};
 
 /*
@@ -27,9 +26,11 @@ export const addParticipant = (roomId, user) => {
   roomParticipants[roomId].push(user);
 };
 
-export const removeParticipant = (roomId, user) => {
+export const removeParticipant = (roomId, socketId) => {
+  if (!roomParticipants[roomId]) return;
+
   roomParticipants[roomId] = roomParticipants[roomId].filter(
-    (s) => s.socketId !== user.socketId,
+    (s) => s.socketId !== socketId,
   );
 
   if (roomParticipants[roomId].length === 0) {
@@ -40,7 +41,7 @@ export const removeParticipant = (roomId, user) => {
 export const findParticipantRoom = (socketId) => {
   for (const roomId in roomParticipants) {
     const exists = roomParticipants[roomId].find(
-      (p) => p.socketId === socketId
+      (p) => p.socketId === socketId,
     );
 
     if (exists) {
