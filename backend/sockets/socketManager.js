@@ -5,7 +5,10 @@ import languageChange from "./handler/languageChange.handler.js";
 import {
   findParticipantRoom,
   removeParticipant,
+  getParticipant,
+  getParticipants,
 } from "../memory/roomParticipants.js";
+import { userLeft, deleteTimeline } from "../memory/timeline.js";
 
 const socketManager = (io) => {
   io.on("connection", (socket) => {
@@ -20,9 +23,23 @@ const socketManager = (io) => {
 
       if (!roomId) return;
 
+      const participant = getParticipant(roomId, socket.id);
+
+      if (participant) {
+        userLeft(roomId, participant);
+      }
+
+      // remove participant first
       removeParticipant(roomId, socket.id);
 
-      socket.to(roomId).emit("user-left", socket.id);
+      const remainingParticipants = getParticipants(roomId);
+
+      // check if room is empty
+      if (remainingParticipants.length === 0) {
+        deleteTimeline(roomId);
+      }
+
+      socket.to(roomId).emit("user-left", participant);
 
       console.log("User disconnected:", socket.id);
     });

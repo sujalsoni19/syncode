@@ -51,3 +51,11 @@ export const findParticipantRoom = (socketId) => {
 
   return null;
 };
+
+export const getParticipant = (roomId, socketId) => {
+  if (!roomParticipants[roomId]) return null;
+
+  return roomParticipants[roomId].find(
+    (p) => p.socketId === socketId
+  );
+};
