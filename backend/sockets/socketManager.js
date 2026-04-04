@@ -1,7 +1,9 @@
 import joinRoom from "./handler/joinroom.handler.js";
-import codeChange from "./handler/codeChange.handler.js";
+import codeChange, { latestCode } from "./handler/codeChange.handler.js";
 import syncCode from "./handler/syncCode.handler.js";
-import languageChange from "./handler/languageChange.handler.js";
+import languageChange, {
+  latestLanguage,
+} from "./handler/languageChange.handler.js";
 import {
   findParticipantRoom,
   removeParticipant,
@@ -9,6 +11,7 @@ import {
   getParticipants,
 } from "../memory/roomParticipants.js";
 import { userLeft, deleteTimeline } from "../memory/timeline.js";
+import { Room } from "../models/room.model.js";
 
 const socketManager = (io) => {
   io.on("connection", (socket) => {
@@ -18,7 +21,7 @@ const socketManager = (io) => {
     codeChange(socket);
     languageChange(socket);
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       const roomId = findParticipantRoom(socket.id);
 
       if (!roomId) return;
@@ -36,6 +39,17 @@ const socketManager = (io) => {
 
       // check if room is empty
       if (remainingParticipants.length === 0) {
+        const code = latestCode[roomId] ?? " ";
+        const language = latestLanguage[roomId] ?? "javascript";
+
+        try {
+          await Room.findOneAndUpdate({ roomId }, { code, language });
+        } catch (err) {
+          console.error("Failed to persist room state:", err);
+        }
+
+        delete latestCode[roomId];
+        delete latestLanguage[roomId];
         deleteTimeline(roomId);
       }
 

@@ -1,5 +1,7 @@
 import { findParticipantRoom } from "../../memory/roomParticipants.js";
 
+export const latestLanguage = {};
+
 const languageChange = (socket) => {
   socket.on("language-change", ({ language }) => {
     const roomId = findParticipantRoom(socket.id);
@@ -7,7 +9,7 @@ const languageChange = (socket) => {
     if (!roomId) {
       return;
     }
-
+    latestLanguage[roomId] = language;
     socket
       .to(roomId)
       .emit("language-change", { language, socketId: socket.id });
