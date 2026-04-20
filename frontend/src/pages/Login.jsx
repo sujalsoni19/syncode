@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useUsercontext } from "@/context/userContext.jsx";
 import { loginUser } from "@/api/user.api.js";
 
 const loginSchema = z.object({
@@ -14,6 +15,8 @@ const loginSchema = z.object({
 export default function Login() {
   const [serverError, setServerError] = useState("");
   const navigate = useNavigate();
+  const {setUser} = useUsercontext();
+
   const {
     register,
     handleSubmit,
@@ -29,7 +32,8 @@ export default function Login() {
       const res = await loginUser(data);
       console.log(res);
       reset();
-        navigate("/home");
+      navigate("/home");
+      setUser(res?.data?.data?.user);
     } catch (error) {
       console.log("error while logging user: ", error);
       setServerError(error.response?.data?.message || "something went wrong");

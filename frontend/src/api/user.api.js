@@ -11,3 +11,6 @@ export const forgotPassword = (data) =>
 
 export const resetPassword = (token, data) => 
     api.post(`/api/v1/users/reset-password/${token}`, data);
+
+export const getCurrentUser = () => 
+    api.get("/api/v1/users/me");
