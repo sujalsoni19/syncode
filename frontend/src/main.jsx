@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router";
-import { LandingPage } from "./pages";
+import { LandingPage, Register, Login } from "./pages";
 import "./index.css";
 import App from "./App.jsx";
 
@@ -15,6 +15,14 @@ const router = createBrowserRouter([
         path: "/",
         element: <LandingPage />,
       },
+      {
+        path: "/register",
+        element: <Register />
+      },
+      {
+        path: "/login",
+        element: <Login />
+      }
     ],
   },
 ]);

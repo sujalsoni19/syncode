@@ -1,3 +1,5 @@
 import LandingPage from "./LandingPage.jsx";
+import Register from "./Register.jsx"
+import Login from "./Login.jsx"
 
-export { LandingPage };
+export { LandingPage, Register, Login };
