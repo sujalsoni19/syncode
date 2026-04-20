@@ -19,6 +19,6 @@ router.route("/change-password").patch(verifyJWT, changePassword);
 
 router.route("/forgot-password").post(forgotPassword);
 
-router.route("/reset-password").post(resetPassword);
+router.route("/reset-password/:token").post(resetPassword);
 
 export default router;

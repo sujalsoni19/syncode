@@ -5,6 +5,7 @@ import ApiResponse from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
+import { resetPasswordTemplate } from "../utils/emailTemplate.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -294,7 +295,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     .digest("hex");
 
   user.passwordResetToken = hashedToken;
-  user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+  user.passwordResetExpires = Date.now() + 60 * 60 * 1000;
 
   await user.save({ validateBeforeSave: false });
 
@@ -303,10 +304,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await sendEmail({
     to: user.email,
     subject: "Password Reset",
-    text: `Reset your password using this link:
-${resetURL}
-
-This link expires in 10 minutes.`,
+    html:  resetPasswordTemplate(resetURL),
   });
 
   return res
@@ -315,13 +313,17 @@ This link expires in 10 minutes.`,
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  const { token, newPassword } = req.body;
+  const {token} = req.params;
+  const { newPassword, confirmPassword } = req.body;
 
-  if (!token || !newPassword) {
-    throw new ApiError(400, "Token and new password are required");
+  if (!token || !newPassword || !confirmPassword) {
+    throw new ApiError(400, "All fields are required");
   }
 
-  // hash incoming token
+  if (newPassword !== confirmPassword) {
+    throw new ApiError(400, "Passwords do not match");
+  }
+
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
@@ -334,7 +336,6 @@ const resetPassword = asyncHandler(async (req, res) => {
   }
 
   user.password = newPassword;
-
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
 
