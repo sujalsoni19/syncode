@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router";
 import { UserProvider } from "./context/userContext.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import PublicRoute from "./components/PublicRoute.jsx";
 import { LandingPage, Register, Login, Fpassword, Rpassword } from "./pages";
 import "./index.css";
 import App from "./App.jsx";
@@ -14,23 +16,43 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <LandingPage />,
+        element: (
+          <PublicRoute>
+            <LandingPage />
+          </PublicRoute>
+        ),
       },
       {
         path: "/register",
-        element: <Register />,
+        element: (
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        ),
       },
       {
         path: "/login",
-        element: <Login />,
+        element: (
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        ),
       },
       {
         path: "/reset-password",
-        element: <Fpassword />,
+        element: (
+          <PublicRoute>
+            <Fpassword />
+          </PublicRoute>
+        ),
       },
       {
         path: "/reset-password/:token",
-        element: <Rpassword />,
+        element: (
+          <PublicRoute>
+            <Rpassword />
+          </PublicRoute>
+        ),
       },
       {
         path: "/home",
