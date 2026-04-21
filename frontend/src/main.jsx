@@ -5,7 +5,7 @@ import { RouterProvider } from "react-router";
 import { UserProvider } from "./context/userContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
-import { LandingPage, Register, Login, Fpassword, Rpassword } from "./pages";
+import { LandingPage, Register, Login, Fpassword, Rpassword, Home } from "./pages";
 import "./index.css";
 import App from "./App.jsx";
 
@@ -54,12 +54,16 @@ const router = createBrowserRouter([
           </PublicRoute>
         ),
       },
-      {
-        path: "/home",
-        element: <h1>i am home</h1>,
-      },
     ],
   },
+  {
+        path: "/home",
+        element: (
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        ),
+      },
 ]);
 
 createRoot(document.getElementById("root")).render(

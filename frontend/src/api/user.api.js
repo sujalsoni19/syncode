@@ -14,3 +14,6 @@ export const resetPassword = (token, data) =>
 
 export const getCurrentUser = () => 
     api.get("/api/v1/users/me");
+
+export const logoutUser = () =>
+    api.post("/api/v1/users/logout");
