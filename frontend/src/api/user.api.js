@@ -17,3 +17,6 @@ export const getCurrentUser = () =>
 
 export const logoutUser = () =>
     api.post("/api/v1/users/logout");
+
+export const updateUserProfile = (data) =>
+    api.patch("/api/v1/users/me", data);

@@ -5,8 +5,17 @@ import { RouterProvider } from "react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "./context/userContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AuthLayout from "./components/AuthLayout.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
-import { LandingPage, Register, Login, Fpassword, Rpassword, Home } from "./pages";
+import {
+  LandingPage,
+  Register,
+  Login,
+  Fpassword,
+  Rpassword,
+  Home,
+  UpdateProfile,
+} from "./pages";
 import "./index.css";
 import App from "./App.jsx";
 
@@ -58,13 +67,22 @@ const router = createBrowserRouter([
     ],
   },
   {
+    element: (
+      <ProtectedRoute>
+        <AuthLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
         path: "/home",
-        element: (
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        ),
+        element: <Home />,
       },
+      {
+        path: "/me/update-profile",
+        element: <UpdateProfile />,
+      },
+    ],
+  },
 ]);
 
 createRoot(document.getElementById("root")).render(
