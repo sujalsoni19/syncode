@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { z } from "zod";
+import Loader from "../components/Loader.jsx"
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPassword } from "@/api/user.api.js";
 
@@ -12,6 +13,7 @@ const fpassSchema = z.object({
 export default function Fpassword() {
   const [serverError, setServerError] = useState("");
   const [showmessage, setShowMessage] = useState(false);
+  const [loading, setLoading] = useState(false);
   const {
     register,
     handleSubmit,
@@ -23,11 +25,13 @@ export default function Fpassword() {
 
   const onSubmit = async (data) => {
     try {
+      setLoading(true);
       setServerError("");
       const res = await forgotPassword(data);
     //   console.log(res);
       reset();
       setShowMessage(true);
+      setLoading(false);
     } catch (error) {
       console.log("error while generating reset password link: ", error);
       setServerError(error.response?.data?.message || "something went wrong");
@@ -81,9 +85,10 @@ export default function Fpassword() {
           {/* Submit */}
           <button
             type="submit"
-            className="w-full cursor-pointer rounded-md bg-emerald-500 py-2 font-medium text-black transition hover:bg-emerald-400"
+            disabled={loading}
+            className={`w-full flex justify-center rounded-md ${loading ? "bg-green-900 cursor-not-allowed" : "bg-emerald-500 hover:bg-emerald-400 cursor-pointer"} py-2 font-medium text-black transition `}
           >
-            Submit
+            {loading ? <Loader height="30"/> : "Submit"}
           </button>
         </form>
       </div>

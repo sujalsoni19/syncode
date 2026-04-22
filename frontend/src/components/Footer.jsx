@@ -1,12 +1,14 @@
 import { SiGithub } from "@icons-pack/react-simple-icons";
-import { useLocation } from "react-router";
-
+import { useLocation, Link } from "react-router";
+import { useUsercontext } from "@/context/userContext";
 import { Logo } from "./Logo";
 
 export function Footer() {
   const location = useLocation();
+  const { user } = useUsercontext();
 
-  const isHome = location.pathname === "/" || location.pathname === "/home";
+
+  const isHome = location.pathname === "/";
 
   const padding = isHome ? "py-8" : "py-2";
 
@@ -16,7 +18,9 @@ export function Footer() {
         className={`mx-auto flex w-full max-w-6xl flex-col gap-5 px-5 ${padding} text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6`}
       >
         <div>
-          <Logo />
+          <Link  to={`${user ? "/home" : "/"}`}>
+            <Logo />
+          </Link>
           <p className="mt-3">
             Real-time code rooms for focused student teams.
           </p>

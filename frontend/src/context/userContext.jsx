@@ -15,6 +15,7 @@ export const UserProvider = ({ children }) => {
         setUser(res?.data?.data);
       } catch (error) {
         console.log("error in fetching user: ", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
