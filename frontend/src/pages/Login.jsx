@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUsercontext } from "@/context/userContext.jsx";
 import { loginUser } from "@/api/user.api.js";
+import { toast } from "react-hot-toast";
 
 const loginSchema = z.object({
   email: z.email("Invalid email address"),
@@ -15,7 +16,7 @@ const loginSchema = z.object({
 export default function Login() {
   const [serverError, setServerError] = useState("");
   const navigate = useNavigate();
-  const {setUser} = useUsercontext();
+  const { setUser } = useUsercontext();
 
   const {
     register,
@@ -32,6 +33,7 @@ export default function Login() {
       const res = await loginUser(data);
       console.log(res);
       reset();
+      toast.success("Logged in successfully");
       navigate("/home");
       setUser(res?.data?.data?.user);
     } catch (error) {

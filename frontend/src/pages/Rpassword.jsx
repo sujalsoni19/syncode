@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { resetPassword } from "@/api/user.api.js";
+import { toast } from "react-hot-toast";
 
 const resetPasswordSchema = z
   .object({
@@ -36,8 +37,9 @@ export default function Rpassword() {
     try {
       setServerError("");
       const res = await resetPassword(token, data);
-    //   console.log(res);
+      //   console.log(res);
       reset();
+      toast.success("Password reset successfully. Please sign in.");
       navigate("/login");
     } catch (error) {
       console.log("error while resetting password: ", error);

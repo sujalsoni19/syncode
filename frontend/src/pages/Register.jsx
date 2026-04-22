@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerUser } from "@/api/user.api.js";
+import { toast } from "react-hot-toast";
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(30),
@@ -32,6 +33,7 @@ export default function Register() {
       setServerError("");
       await registerUser(data);
       reset();
+      toast.success("Account created. Please sign in.");
       navigate("/login");
     } catch (error) {
       console.log("error while registering user: ", error);

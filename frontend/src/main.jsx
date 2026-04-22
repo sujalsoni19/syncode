@@ -1,12 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter } from "react-router";
-import { RouterProvider } from "react-router";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "./context/userContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AuthLayout from "./components/AuthLayout.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
+import { Toaster } from "react-hot-toast";
 import {
   LandingPage,
   Register,
@@ -15,6 +15,7 @@ import {
   Rpassword,
   Home,
   UpdateProfile,
+  Cpassword,
 } from "./pages";
 import "./index.css";
 import App from "./App.jsx";
@@ -81,6 +82,10 @@ const router = createBrowserRouter([
         path: "/me/update-profile",
         element: <UpdateProfile />,
       },
+      {
+        path: "/me/change-password",
+        element: <Cpassword />,
+      },
     ],
   },
 ]);
@@ -89,6 +94,15 @@ createRoot(document.getElementById("root")).render(
   <UserProvider>
     <TooltipProvider>
       <RouterProvider router={router} />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "#18181b",
+            color: "#fff",
+          },
+        }}
+      />
     </TooltipProvider>
   </UserProvider>,
 );

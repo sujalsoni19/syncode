@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUsercontext } from "@/context/userContext.jsx";
 import { updateUserProfile } from "@/api/user.api.js";
+import {toast} from "react-hot-toast"
 
 const updateSchema = z
   .object({
@@ -47,7 +48,7 @@ export default function UpdateProfile() {
 
       setUser(updatedUser); // update auth state first
       reset();
-
+      toast.success("Profile updated successfully");
       navigate("/home"); // then redirect
     } catch (error) {
       console.log("error while updating user profile: ", error);
