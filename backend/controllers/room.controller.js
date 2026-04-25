@@ -42,7 +42,7 @@ const joinRoom = asyncHandler(async (req, res) => {
   );
 
   if (!room) {
-    throw new ApiError(404, "room not found");
+    throw new ApiError(404, "Room not found. Ask the host to share the correct code.");
   }
 
   return res
