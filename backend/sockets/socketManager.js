@@ -4,6 +4,9 @@ import syncCode from "./handler/syncCode.handler.js";
 import languageChange, {
   latestLanguage,
 } from "./handler/languageChange.handler.js";
+import kickUser from "./handler/kickUser.handler.js";
+import leaveRoom from "./handler/leaveRoom.handler.js";
+import closeRoom from "./handler/closeRoom.handler.js";
 import {
   findParticipantRoom,
   removeParticipant,
@@ -21,6 +24,10 @@ const socketManager = (io) => {
     syncCode(socket, io);
     codeChange(socket);
     languageChange(socket);
+
+    kickUser(socket, io);
+    leaveRoom(socket, io);
+    closeRoom(socket, io);
 
     socket.on("disconnect", () => {
       const roomId = findParticipantRoom(socket.id);
@@ -47,7 +54,7 @@ const socketManager = (io) => {
         removeParticipant(roomId, userId); // IMPORTANT: remove by userId
 
         const updatedParticipants = getParticipants(roomId);
-        socket.nsp.to(roomId).emit("participants", updatedParticipants);
+        io.to(roomId).emit("participants", updatedParticipants);
         console.log("participants: ", updatedParticipants);
 
         if (updatedParticipants.length === 0) {
