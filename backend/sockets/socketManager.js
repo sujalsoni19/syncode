@@ -24,23 +24,33 @@ const socketManager = (io) => {
 
     socket.on("disconnect", () => {
       const roomId = findParticipantRoom(socket.id);
-
       if (!roomId) return;
 
       const participant = getParticipant(roomId, socket.id);
-
       if (!participant) return;
 
-      // start a reconnect grace timer
-      disconnectTimers[participant.userId] = setTimeout(async () => {
+      const { userId } = participant;
+
+      disconnectTimers[userId] = setTimeout(async () => {
+        const participants = getParticipants(roomId);
+
+        const stillExists = participants.find((p) => p.userId === userId);
+
+        // user already reconnected with a new socket → cancel removal
+        if (!stillExists || stillExists.socketId !== socket.id) {
+          delete disconnectTimers[userId];
+          return;
+        }
+
         userLeft(roomId, participant);
 
-        removeParticipant(roomId, socket.id);
+        removeParticipant(roomId, userId); // IMPORTANT: remove by userId
 
-        const remainingParticipants = getParticipants(roomId);
+        const updatedParticipants = getParticipants(roomId);
+        socket.nsp.to(roomId).emit("participants", updatedParticipants);
+        console.log("participants: ", updatedParticipants);
 
-        // check if room is empty
-        if (remainingParticipants.length === 0) {
+        if (updatedParticipants.length === 0) {
           const code = latestCode[roomId] ?? " ";
           const language = latestLanguage[roomId] ?? "javascript";
 
@@ -55,12 +65,11 @@ const socketManager = (io) => {
           deleteTimeline(roomId);
         }
 
-        socket.to(roomId).emit("user-left", participant);
-
-        delete disconnectTimers[participant.userId];
+        delete disconnectTimers[userId];
 
         console.log("User fully disconnected:", socket.id);
-      }, 3000); // 3 seconds reconnect window
+        console.log("participants: ", updatedParticipants);
+      }, 3000);
     });
   });
 };

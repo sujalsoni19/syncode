@@ -32,36 +32,42 @@ export const addParticipant = (roomId, user) => {
   }
 
   const existing = roomParticipants[roomId].find(
-    (p) => p.userId === user.userId
+    (p) => p.userId === user.userId,
   );
 
   if (existing) {
-    // user refreshed → update socketId
     existing.socketId = user.socketId;
 
-    // cancel disconnect removal if pending
     if (disconnectTimers[user.userId]) {
       clearTimeout(disconnectTimers[user.userId]);
       delete disconnectTimers[user.userId];
     }
 
-    return;
+    return existing;
   }
 
   const isOwner = roomParticipants[roomId].length === 0;
 
   roomParticipants[roomId].push({
     ...user,
-    isOwner
+    isOwner,
   });
 };
 
-export const removeParticipant = (roomId, socketId) => {
+export const removeParticipant = (roomId, userId) => {
   if (!roomParticipants[roomId]) return;
 
-  roomParticipants[roomId] = roomParticipants[roomId].filter(
-    (s) => s.socketId !== socketId,
+  const leaving = roomParticipants[roomId].find(
+    (p) => p.userId === userId
   );
+
+  roomParticipants[roomId] = roomParticipants[roomId].filter(
+    (p) => p.userId !== userId
+  );
+
+  if (leaving?.isOwner && roomParticipants[roomId].length > 0) {
+    roomParticipants[roomId][0].isOwner = true;
+  }
 
   if (roomParticipants[roomId].length === 0) {
     delete roomParticipants[roomId];
