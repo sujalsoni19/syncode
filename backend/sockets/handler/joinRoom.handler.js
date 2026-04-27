@@ -13,6 +13,11 @@ const joinRoom = (socket) => {
 
     const alreadyJoined = participants.find((p) => p.userId === userId);
 
+    if (!alreadyJoined && participants.length >= 10) {
+    socket.emit("room-full");
+    return;
+  }
+
     //  RECONNECT CASE (user refreshed)
     if (alreadyJoined) {
       alreadyJoined.socketId = socket.id;

@@ -25,8 +25,18 @@ const roomSchema = new Schema(
       type: String,
       default: "javascript",
     },
+    closedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );
+
+// TTL index to automatically delete closed rooms after 7 days
+roomSchema.index({ closedAt: 1 }, { expireAfterSeconds: 604800 });
+
+// Query optimization index
+roomSchema.index({ ownerId: 1, createdAt: -1 });
 
 export const Room = mongoose.model("Room", roomSchema);

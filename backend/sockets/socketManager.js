@@ -62,7 +62,10 @@ const socketManager = (io) => {
           const language = latestLanguage[roomId] ?? "javascript";
 
           try {
-            await Room.findOneAndUpdate({ roomId }, { code, language });
+            await Room.findOneAndUpdate(
+              { roomId },
+              { code, language, isActive: false, closedAt: new Date() },
+            );
           } catch (err) {
             console.error("Failed to persist room state:", err);
           }
