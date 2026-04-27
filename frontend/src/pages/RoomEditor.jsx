@@ -11,9 +11,18 @@ import { Separator } from "@/components/ui/separator";
 import { timelineEvents } from "@/data/mockData";
 import getGuestId from "@/utils/getGuestId.js";
 import { toast } from "react-hot-toast";
+import DialogueBox from "@/components/DialogueBox.jsx";
 
 function RoomEditor() {
-  const { roomId = "demo-room" } = useParams();
+  const { roomId } = useParams();
+
+  // for kicking user
+  const [targetUser, setTargetUser] = useState({});
+
+  // dialogue box states
+  const [openCloseRoomDialog, setOpenCloseRoomDialog] = useState(false);
+  const [openKickUserDialog, setKickUserDialog] = useState(false);
+
   const [language, setLanguage] = useState("javascript");
   const [code, setCode] = useState("");
   const debounceRef = useRef(null);
@@ -26,6 +35,11 @@ function RoomEditor() {
   const navigate = useNavigate();
 
   const { user, loading } = useUsercontext();
+
+  const currentUserId = user?._id || getGuestId();
+
+  const isOwner =
+    participants?.find((p) => p.userId === currentUserId)?.isOwner ?? false;
 
   useEffect(() => {
     socket.on("participants", (item) => {
@@ -76,14 +90,33 @@ function RoomEditor() {
       navigate(user ? "/home" : "/");
     });
 
+    socket.on("kicked", ({ message }) => {
+      toast.error(message);
+      navigate(user ? "/home" : "/");
+    });
+
     return () => {
       socket.off("code-change");
       socket.off("language-change");
       socket.off("request-sync-code");
       socket.off("sync-code");
       socket.off("room-full");
+      socket.off("kicked");
     };
   }, []);
+
+  useEffect(() => {
+    socket.on("room-closed", ({ message }) => {
+      if (isOwner) {
+        toast.success("Room closed successfully");
+      } else {
+        toast.error(message);
+      }
+      navigate(user ? "/home" : "/");
+    });
+
+    return () => socket.off("room-closed");
+  },[isOwner])
 
   // join room
   useEffect(() => {
@@ -130,6 +163,40 @@ function RoomEditor() {
     });
   };
 
+  const handleKickUser = (userId, name) => {
+    setTargetUser({ userId, name });
+    setKickUserDialog(true);
+  };
+
+  const confirmKickUser = () => {
+    if (!targetUser) return;
+
+    socket.emit("kick-user", {
+      roomId,
+      userId: targetUser.userId,
+    });
+
+    setKickUserDialog(false);
+    setTargetUser(null);
+
+    toast.success(`${targetUser.name} was removed`);
+  };
+
+  const handleLeaveRoom = () => {
+    socket.emit("leave-room");
+    navigate(user ? "/home" : "/");
+    toast.success("You left the room");
+  };
+
+  const handleCloseRoom = () => {
+    setOpenCloseRoomDialog(true);
+  };
+
+  const confirmCloseRoom = () => {
+    socket.emit("close-room", { roomId });
+    setOpenCloseRoomDialog(false);
+  };
+
   if (!isSynced) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-400">
@@ -144,8 +211,28 @@ function RoomEditor() {
         roomId={roomId}
         language={language}
         onLanguageChange={handleLangChange}
+        onLeaveRoom={handleLeaveRoom}
+        isOwner={isOwner}
+        onCloseRoom={handleCloseRoom}
         isOutputOpen={isOutputOpen}
         onToggleOutput={() => setIsOutputOpen((current) => !current)}
+      />
+      <DialogueBox
+        open={openCloseRoomDialog}
+        onOpenChange={setOpenCloseRoomDialog}
+        onConfirm={confirmCloseRoom}
+        title={"Close the room?"}
+        desc={"This will remove everyone from the room."}
+        action={"Close Room"}
+      />
+
+      <DialogueBox
+        open={openKickUserDialog}
+        onOpenChange={setKickUserDialog}
+        onConfirm={confirmKickUser}
+        title={`Kick ${targetUser?.name}?`}
+        desc="This user will be removed from the room."
+        action="Kick User"
       />
 
       <main className="flex min-h-0 flex-1">
@@ -153,12 +240,9 @@ function RoomEditor() {
           <div className="min-h-0 flex-1">
             <ParticipantsPanel
               participants={participants}
-              currentUserId={user?._id || getGuestId()}
-              isOwner={
-                participants?.find(
-                  (p) => p.userId === (user?._id || getGuestId()),
-                )?.isOwner
-              }
+              currentUserId={currentUserId}
+              isOwner={isOwner}
+              onKickUser={handleKickUser}
             />
           </div>
 

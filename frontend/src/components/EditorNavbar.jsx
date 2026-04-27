@@ -6,6 +6,8 @@ import {
   Link,
   Play,
   TerminalSquare,
+  LogOut,
+  XCircle,
 } from "lucide-react";
 import { Logo } from "./Logo.jsx";
 import { Button } from "@/components/ui/button";
@@ -68,6 +70,9 @@ function EditorNavbar({
   roomId,
   language,
   onLanguageChange,
+  onLeaveRoom,
+  onCloseRoom,
+  isOwner,
   isOutputOpen,
   onToggleOutput,
 }) {
@@ -157,6 +162,22 @@ function EditorNavbar({
           onClick={() => copyText(inviteLink)}
           className="bg-zinc-500/70 hover:bg-zinc-500/90 border-zinc-500/30"
         />
+
+        <NavbarIconButton
+          label="Leave Room"
+          icon={<LogOut className="size-4 text-white" />}
+          onClick={onLeaveRoom}
+          className="bg-red-300/70 hover:bg-red-300/90 border-red-500/30"
+        />
+
+        {isOwner && (
+          <NavbarIconButton
+            label="Close Room"
+            icon={<XCircle className="size-4 text-white" />}
+            onClick={onCloseRoom}
+            className="bg-rose-600/70 hover:bg-rose-600/90 border-rose-600/30"
+          />
+        )}
       </div>
     </header>
   );

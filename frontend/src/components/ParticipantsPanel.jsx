@@ -2,6 +2,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Crown, UserX } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function ParticipantsPanel({
   participants = [],
@@ -38,7 +43,6 @@ function ParticipantsPanel({
                 className={`flex items-center gap-3 border rounded-lg px-2 py-2
                 ${isSelf ? "bg-zinc-800 border-zinc-700" : "hover:bg-zinc-800/70"}`}
               >
-                
                 <div className="relative">
                   <div
                     style={{ backgroundColor: participant.color }}
@@ -49,7 +53,7 @@ function ParticipantsPanel({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center justify-between text-sm font-medium text-zinc-100">
+                  <p className="flex  wrap-normal items-center justify-between text-sm font-medium text-zinc-100">
                     <span className="truncate flex items-center gap-2">
                       {participant.name}
 
@@ -61,14 +65,20 @@ function ParticipantsPanel({
                     <span className="flex items-center gap-2">
                       {participant.isOwner && (
                         <span className="flex items-center gap-1 text-yellow-400 text-xs">
-                          <Crown size={14} />
-                          Host
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Crown size={14} />
+                            </TooltipTrigger>
+                            <TooltipContent>Host</TooltipContent>
+                          </Tooltip>
                         </span>
                       )}
 
                       {isOwner && !isSelf && onKickUser && (
                         <button
-                          onClick={() => onKickUser(participant.userId)}
+                          onClick={() =>
+                            onKickUser(participant.userId, participant.name)
+                          }
                           className="text-red-400 cursor-pointer hover:text-red-300"
                         >
                           <UserX size={16} />
