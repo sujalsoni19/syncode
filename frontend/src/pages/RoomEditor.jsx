@@ -164,7 +164,7 @@ function RoomEditor() {
       isRemoteChange.current = false;
       return;
     }
-    if (!value) return;
+    if (value === undefined) return;
 
     const valueCode = value;
 
