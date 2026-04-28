@@ -1,3 +1,5 @@
+import { ownerTransfer } from "./timeline.js";
+
 const roomParticipants = {};
 const disconnectTimers = {};
 
@@ -57,21 +59,27 @@ export const addParticipant = (roomId, user) => {
 export const removeParticipant = (roomId, userId) => {
   if (!roomParticipants[roomId]) return;
 
-  const leaving = roomParticipants[roomId].find(
-    (p) => p.userId === userId
-  );
+  const leaving = roomParticipants[roomId].find((p) => p.userId === userId);
 
   roomParticipants[roomId] = roomParticipants[roomId].filter(
-    (p) => p.userId !== userId
+    (p) => p.userId !== userId,
   );
 
+  let ownerTransferEvent = null;
+
   if (leaving?.isOwner && roomParticipants[roomId].length > 0) {
-    roomParticipants[roomId][0].isOwner = true;
+    const newOwner = roomParticipants[roomId][0];
+
+    newOwner.isOwner = true;
+
+    ownerTransferEvent = ownerTransfer(roomId, newOwner);
   }
 
   if (roomParticipants[roomId].length === 0) {
     delete roomParticipants[roomId];
   }
+
+  return ownerTransferEvent;
 };
 
 export const findParticipantRoom = (socketId) => {

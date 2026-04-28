@@ -1,78 +1,99 @@
 const timeline = {};
+const eventCounters = {};
 
-/*
-timeline = {
-  roomId1: [
-    {
-      type: "ROOM_CREATED",
-      user: "Sujal",
-      socketId: "abc123",
-      timestamp: 171000000
-    },
-    {
-      type: "USER_JOINED",
-      user: "Guest-123",
-      socketId: "xyz456",
-      timestamp: 171000020
-    }
-  ]
-}
-*/
+const MAX_EVENTS = 50;
 
-// ensure timeline array exists
 const ensureRoomTimeline = (roomId) => {
   if (!timeline[roomId]) {
     timeline[roomId] = [];
+    eventCounters[roomId] = 0;
   }
 };
 
-// get timeline for a room
+// create event with monotonic id
+const createEvent = (roomId, type, participant, extra = {}) => {
+  eventCounters[roomId] += 1;
+
+  return {
+    id: eventCounters[roomId], // monotonic event id
+    type,
+    user: participant?.name || null,
+    socketId: participant?.socketId || null,
+    timestamp: Date.now(),
+    ...extra,
+  };
+};
+
+const pushEvent = (roomId, event) => {
+  timeline[roomId].push(event);
+
+  if (timeline[roomId].length > MAX_EVENTS) {
+    timeline[roomId].shift();
+  }
+};
+
+// get timeline
 export const getTimeline = (roomId) => {
   return timeline[roomId] || [];
 };
 
-// event when room is created
+// room created
 export const roomCreated = (roomId, participant) => {
   ensureRoomTimeline(roomId);
 
-  // prevent duplicate creation event
-  if (timeline[roomId].length !== 0) {
-    return;
-  }
+  if (timeline[roomId].length !== 0) return;
 
-  timeline[roomId].push({
-    type: "ROOM_CREATED",
-    user: participant.name,
-    socketId: participant.socketId,
-    timestamp: Date.now(),
-  });
+  const event = createEvent(roomId, "ROOM_CREATED", participant);
+  pushEvent(roomId, event);
+
+  return event;
 };
 
-// event when user joins
+// user joined
 export const userJoined = (roomId, participant) => {
   ensureRoomTimeline(roomId);
 
-  timeline[roomId].push({
-    type: "USER_JOINED",
-    user: participant.name,
-    socketId: participant.socketId,
-    timestamp: Date.now(),
-  });
+  const event = createEvent(roomId, "USER_JOINED", participant);
+  pushEvent(roomId, event);
+
+  return event;
 };
 
-// event when user leaves
+// user left
 export const userLeft = (roomId, participant) => {
   ensureRoomTimeline(roomId);
 
-  timeline[roomId].push({
-    type: "USER_LEFT",
-    user: participant.name,
-    socketId: participant.socketId,
-    timestamp: Date.now(),
-  });
+  const event = createEvent(roomId, "USER_LEFT", participant);
+  pushEvent(roomId, event);
+
+  return event;
 };
 
-// clear timeline when room becomes empty (optional)
+// user kicked
+export const userKicked = (roomId, participant, by) => {
+  ensureRoomTimeline(roomId);
+
+  const event = createEvent(roomId, "USER_KICKED", participant, {
+    by,
+  });
+
+  pushEvent(roomId, event);
+
+  return event;
+};
+
+// ownership transferred
+export const ownerTransfer = (roomId, participant) => {
+  ensureRoomTimeline(roomId);
+
+  const event = createEvent(roomId, "OWNER_TRANSFERRED", participant);
+  pushEvent(roomId, event);
+
+  return event;
+};
+
+// delete timeline
 export const deleteTimeline = (roomId) => {
   delete timeline[roomId];
+  delete eventCounters[roomId];
 };

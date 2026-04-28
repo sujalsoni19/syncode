@@ -20,7 +20,7 @@ import { disconnectTimers } from "../memory/roomParticipants.js";
 const socketManager = (io) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
-    joinRoom(socket);
+    joinRoom(socket, io);
     syncCode(socket, io);
     codeChange(socket);
     languageChange(socket);
@@ -49,9 +49,21 @@ const socketManager = (io) => {
           return;
         }
 
-        userLeft(roomId, participant);
+        socket.leave(roomId);
 
-        removeParticipant(roomId, userId); // IMPORTANT: remove by userId
+        // USER LEFT EVENT
+        const leaveEvent = userLeft(roomId, participant);
+        io.to(roomId).emit("timeline-event", leaveEvent);
+
+        // REMOVE PARTICIPANT + OWNER TRANSFER
+        const ownerTransferEvent = removeParticipant(
+          roomId,
+          participant.userId,
+        );
+
+        if (ownerTransferEvent) {
+          io.to(roomId).emit("timeline-event", ownerTransferEvent);
+        }
 
         const updatedParticipants = getParticipants(roomId);
         io.to(roomId).emit("participants", updatedParticipants);

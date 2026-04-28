@@ -2,6 +2,7 @@ import {
   getParticipants,
   removeParticipant,
 } from "../../memory/roomParticipants.js";
+import { userKicked } from "../../memory/timeline.js";
 
 const kickUser = (socket, io) => {
   socket.on("kick-user", ({ roomId, userId }) => {
@@ -27,6 +28,11 @@ const kickUser = (socket, io) => {
 
     removeParticipant(roomId, userId);
 
+    const event = userKicked(roomId, target, requestedBy.name);
+
+    console.log(event);
+    io.to(roomId).emit("timeline-event", event);
+    
     io.to(roomId).emit("participants", getParticipants(roomId));
   });
 };
