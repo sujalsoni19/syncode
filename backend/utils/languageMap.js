@@ -7,4 +7,5 @@ export const languageMap = {
   cpp: "cpp17",
   java: "java",
   c: "c",
+  go: "go"
 };

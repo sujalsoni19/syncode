@@ -6,6 +6,79 @@ import api from "../config/axios.js";
 import { languageMap } from "../utils/languageMap.js";
 import { Room } from "../models/room.model.js";
 
+// for local js and ts execution(without using jdoodle api)
+import { exec } from "child_process";
+import fs from "fs/promises";
+import path from "path";
+
+const runLocalCode = async (language, code) => {
+  if (code.length > 20000) {
+    throw new ApiError(400, "Code too large");
+  }
+
+  const bannedPatterns = [
+    "require('fs')",
+    'require("fs")',
+    "child_process",
+    "process.env",
+    "worker_threads",
+    "cluster",
+  ];
+
+  for (const pattern of bannedPatterns) {
+    if (code.includes(pattern)) {
+      throw new ApiError(400, "Unsafe code detected");
+    }
+  }
+
+  const ext = language === "typescript" ? "ts" : "js";
+
+  await fs.mkdir("temp", { recursive: true });
+
+  const fileName = `script-${Date.now()}.${ext}`;
+  const filePath = path.join("temp", fileName);
+
+  await fs.writeFile(filePath, code);
+
+  const command =
+    language === "typescript" ? `npx ts-node ${filePath}` : `node ${filePath}`;
+
+  return new Promise((resolve, reject) => {
+    exec(command, { timeout: 3000 }, async (err, stdout, stderr) => {
+      await fs.unlink(filePath);
+
+      if (err) {
+        let errorMessage = stderr || err.message;
+
+        // remove file paths
+        errorMessage = errorMessage.replace(
+          /file:\/\/.*temp\/.*\.\w+:\d+/g,
+          "",
+        );
+
+        // remove node internal stack traces
+        errorMessage = errorMessage
+          .split("\n")
+          .filter((line) => !line.includes("node:internal"))
+          .join("\n");
+
+        // remove Node version line
+        errorMessage = errorMessage.replace(/Node\.js v\d+\.\d+\.\d+/g, "");
+
+        // keep only actual error line
+        const errorLine = errorMessage
+          .split("\n")
+          .find((line) => line.includes("Error"));
+
+        resolve(errorLine || errorMessage.trim());
+        return;
+      }
+
+      resolve(stdout);
+    });
+  });
+};
+
 const createRoom = asyncHandler(async (req, res) => {
   let roomId;
   let existingRoom;
@@ -42,7 +115,10 @@ const joinRoom = asyncHandler(async (req, res) => {
   );
 
   if (!room) {
-    throw new ApiError(404, "Room not found. Ask the host to share the correct code.");
+    throw new ApiError(
+      404,
+      "Room not found. Ask the host to share the correct code.",
+    );
   }
 
   return res
@@ -55,6 +131,20 @@ const runCode = asyncHandler(async (req, res) => {
 
   if (!language || !code) {
     throw new ApiError(400, "both fields are required");
+  }
+
+  if (language === "javascript" || language === "typescript") {
+    const output = await runLocalCode(language, code);
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { output, memory: null, cpuTime: null },
+          "code executed successfully",
+        ),
+      );
   }
 
   const mappedLangauage = languageMap[language];
@@ -87,24 +177,4 @@ const runCode = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, data, "code executed successfully"));
 });
 
-const closeRoom = asyncHandler(async (req, res) => {
-  const { roomId } = req.params;
-  const userId = req.user._id;
-
-  const room = await Room.findOne({ roomId });
-
-  if (!room) {
-    throw new ApiError(404, "Room not found");
-  }
-
-  if (room.ownerId.toString() !== userId.toString()) {
-    throw new ApiError(403, "Only the room owner can close this room");
-  }
-
-  room.isActive = false;
-  await room.save();
-
-  res.status(200).json(new ApiResponse(200, room, "Room closed successfully"));
-});
-
-export { createRoom, joinRoom, runCode, closeRoom };
+export { createRoom, joinRoom, runCode };
