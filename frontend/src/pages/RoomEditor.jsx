@@ -30,6 +30,7 @@ function RoomEditor() {
   const debounceRef = useRef(null);
   const codeRef = useRef("");
   const languageRef = useRef("javascript");
+  const isRemoteChange = useRef(false);
   const [participants, setParticipants] = useState([]);
   const [isOutputOpen, setIsOutputOpen] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
@@ -89,7 +90,12 @@ function RoomEditor() {
 
   // listeners
   useEffect(() => {
-    socket.on("code-change", ({ code }) => setCode(code));
+    socket.on("code-change", ({ code, socketId }) => {
+      if (socketId === socket.id) return;
+
+      isRemoteChange.current = true;
+      setCode(code);
+    });
 
     socket.on("language-change", ({ language }) => setLanguage(language));
 
@@ -154,6 +160,10 @@ function RoomEditor() {
   }, [roomId, user, loading]);
 
   const handleCodeChange = (value) => {
+    if (isRemoteChange.current) {
+      isRemoteChange.current = false;
+      return;
+    }
     if (!value) return;
 
     const valueCode = value;
@@ -280,6 +290,9 @@ function RoomEditor() {
               language={language}
               value={code}
               onChange={handleCodeChange}
+              socket={socket}
+              roomId={roomId}
+              participants={participants}
             />
           </div>
 

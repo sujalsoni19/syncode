@@ -34,6 +34,7 @@ const joinRoom = (socket, io) => {
       console.log("user reconnected:", socket.id);
 
       socket.emit("timeline-history", getTimeline(roomId));
+      socket.to(roomId).emit("request-sync-code", socket.id);
       socket.nsp.to(roomId).emit("participants", getParticipants(roomId));
       console.log(getParticipants(roomId));
 
