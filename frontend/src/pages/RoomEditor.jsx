@@ -23,6 +23,8 @@ function RoomEditor() {
   const [openCloseRoomDialog, setOpenCloseRoomDialog] = useState(false);
   const [openKickUserDialog, setKickUserDialog] = useState(false);
 
+  const [events, setEvents] = useState([]);
+
   const [language, setLanguage] = useState("javascript");
   const [code, setCode] = useState("");
   const debounceRef = useRef(null);
@@ -40,6 +42,25 @@ function RoomEditor() {
 
   const isOwner =
     participants?.find((p) => p.userId === currentUserId)?.isOwner ?? false;
+
+  // timeline
+  useEffect(() => {
+    socket.on("timeline-history", (history) => {
+      setEvents(history);
+    });
+
+    socket.on("timeline-event", (event) => {
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === event.id)) return prev;
+        return [...prev, event];
+      });
+    });
+
+    return () => {
+      socket.off("timeline-history");
+      socket.off("timeline-event");
+    };
+  }, []);
 
   useEffect(() => {
     socket.on("participants", (item) => {
@@ -116,7 +137,7 @@ function RoomEditor() {
     });
 
     return () => socket.off("room-closed");
-  },[isOwner])
+  }, [isOwner]);
 
   // join room
   useEffect(() => {
@@ -249,7 +270,7 @@ function RoomEditor() {
           <Separator className="my-3 bg-zinc-800" />
 
           <div className="min-h-0 flex-1">
-            <TimelinePanel events={timelineEvents} />
+            <TimelinePanel events={events} />
           </div>
         </aside>
 
