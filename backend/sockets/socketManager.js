@@ -7,6 +7,7 @@ import languageChange, {
 import kickUser from "./handler/kickUser.handler.js";
 import leaveRoom from "./handler/leaveRoom.handler.js";
 import closeRoom from "./handler/closeRoom.handler.js";
+import cursorTracking from "./handler/cursorTracking.handler.js";
 import {
   findParticipantRoom,
   removeParticipant,
@@ -24,6 +25,7 @@ const socketManager = (io) => {
     syncCode(socket, io);
     codeChange(socket);
     languageChange(socket);
+    cursorTracking(socket, io);
 
     kickUser(socket, io);
     leaveRoom(socket, io);
