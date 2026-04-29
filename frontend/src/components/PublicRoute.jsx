@@ -6,7 +6,7 @@ import Loader from "./Loader.jsx";
 function PublicRoute({ children }) {
   const { loading, user } = useUsercontext();
 
-  if (loading) return <Loader />;
+  if (loading) return <div className="flex justify-center items-center w-full h-screen"><Loader /></div>;
 
   if (user) {
     return <Navigate to={"/home"} replace/>
