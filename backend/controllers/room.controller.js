@@ -7,7 +7,6 @@ import { languageMap } from "../utils/languageMap.js";
 import { Room } from "../models/room.model.js";
 import { getIO } from "../sockets/io.js";
 
-// for local js and ts execution(without using jdoodle api)
 import { spawn } from "child_process";
 import fs from "fs/promises";
 import path from "path";
@@ -46,8 +45,12 @@ const runLocalCode = async (language, code, stdin = "") => {
   await fs.writeFile(filePath, code);
 
   return new Promise((resolve) => {
-    const command = language === "typescript" ? "npx" : "node";
-    const args = language === "typescript" ? ["ts-node", filePath] : [filePath];
+    let command = "node";
+    let args = [filePath];
+
+    if (language === "typescript") {
+      args = ["-r", "ts-node/register", filePath];
+    }
 
     const child = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"],
@@ -66,10 +69,10 @@ const runLocalCode = async (language, code, stdin = "") => {
 
     child.on("error", async () => {
       await fs.unlink(filePath).catch(() => {});
-      resolve("Failed to execute program");
+      resolve("Execution failed");
     });
 
-    // send stdin
+    // stdin support
     if (stdin) {
       child.stdin.write(stdin + "\n");
     }
@@ -88,7 +91,7 @@ const runLocalCode = async (language, code, stdin = "") => {
 
       let result = "";
 
-      if (stderr) {
+      if (stderr.trim()) {
         const lines = stderr.split("\n");
 
         const cleanError =
@@ -101,7 +104,7 @@ const runLocalCode = async (language, code, stdin = "") => {
         result = stdout.trim();
       }
 
-      resolve(result || "Program executed successfully");
+      resolve(result || "");
     });
   });
 };
@@ -215,4 +218,37 @@ const runCode = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, data, "code executed successfully"));
 });
 
-export { createRoom, joinRoom, runCode };
+const getRoomsDetails = asyncHandler(async (req, res) => {
+  const rooms = await Room.find({ ownerId: req.user._id }).sort({
+    createdAt: -1,
+  });
+
+  const activeRooms = rooms.filter((r) => r.isActive);
+  const closedRooms = rooms.filter((r) => !r.isActive);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { activeRooms, closedRooms },
+        "rooms fetched successfully",
+      ),
+    );
+});
+
+const getRoomDetails = asyncHandler(async (req, res) => {
+  const { roomId } = req.params;
+
+  const room = await Room.findOne({ roomId });
+
+  if (!room) {
+    throw new ApiError(404, "Room does not exist");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, room, "Room fetched successfully"));
+});
+
+export { createRoom, joinRoom, runCode, getRoomsDetails, getRoomDetails };
