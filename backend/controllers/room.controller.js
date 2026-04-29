@@ -219,12 +219,19 @@ const runCode = asyncHandler(async (req, res) => {
 });
 
 const getRoomsDetails = asyncHandler(async (req, res) => {
-  const rooms = await Room.find({ ownerId: req.user._id }).sort({
-    createdAt: -1,
-  });
+  const activeRooms = await Room.find({
+    ownerId: req.user._id,
+    isActive: true,
+  })
+    .sort({ createdAt: -1 })
+    .limit(6);
 
-  const activeRooms = rooms.filter((r) => r.isActive);
-  const closedRooms = rooms.filter((r) => !r.isActive);
+  const closedRooms = await Room.find({
+    ownerId: req.user._id,
+    isActive: false,
+  })
+    .sort({ closedAt: -1 })
+    .limit(6);
 
   return res
     .status(200)
@@ -251,4 +258,20 @@ const getRoomDetails = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, room, "Room fetched successfully"));
 });
 
-export { createRoom, joinRoom, runCode, getRoomsDetails, getRoomDetails };
+const deleteRoom = asyncHandler(async (req, res) => {
+  const room = await Room.findOneAndDelete({
+    roomId: req.params.roomId,
+    ownerId: req.user._id,
+    isActive: false,
+  });
+
+  if (!room) {
+    throw new ApiError(404, "Room not found or still active");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Room deleted successfully"));
+});
+
+export { createRoom, joinRoom, runCode, getRoomsDetails, getRoomDetails, deleteRoom };

@@ -5,7 +5,8 @@ import {
   joinRoom,
   runCode,
   getRoomsDetails,
-  getRoomDetails
+  getRoomDetails,
+  deleteRoom
 } from "../controllers/room.controller.js";
 import { runCodeLimiter } from "../middlewares/runCodeLimiter.middleware.js";
 
@@ -20,5 +21,7 @@ router.route("/room/:roomId/run").post(runCodeLimiter, runCode);
 router.route("/").get(verifyJWT, getRoomsDetails);
 
 router.route("/room/:roomId").get(getRoomDetails);
+
+router.delete("/room/:roomId", verifyJWT, deleteRoom);
 
 export default router;
