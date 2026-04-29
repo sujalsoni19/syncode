@@ -17,10 +17,14 @@ import {
 import { userLeft, deleteTimeline } from "../memory/timeline.js";
 import { Room } from "../models/room.model.js";
 import { disconnectTimers } from "../memory/roomParticipants.js";
+import { setIO } from "./io.js";
 
 const socketManager = (io) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
+
+    setIO(io);
+
     joinRoom(socket, io);
     syncCode(socket, io);
     codeChange(socket);

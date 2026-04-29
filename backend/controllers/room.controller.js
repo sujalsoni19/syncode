@@ -5,15 +5,16 @@ import crypto from "crypto";
 import api from "../config/axios.js";
 import { languageMap } from "../utils/languageMap.js";
 import { Room } from "../models/room.model.js";
+import { getIO } from "../sockets/io.js";
 
 // for local js and ts execution(without using jdoodle api)
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 
-const runLocalCode = async (language, code) => {
-  if (code.length > 20000) {
-    throw new ApiError(400, "Code too large");
+const runLocalCode = async (language, code, stdin = "") => {
+  if (!code || code.length > 20000) {
+    throw new Error("Code too large");
   }
 
   const bannedPatterns = [
@@ -27,54 +28,80 @@ const runLocalCode = async (language, code) => {
 
   for (const pattern of bannedPatterns) {
     if (code.includes(pattern)) {
-      throw new ApiError(400, "Unsafe code detected");
+      throw new Error("Unsafe code detected");
     }
   }
 
   const ext = language === "typescript" ? "ts" : "js";
 
-  await fs.mkdir("temp", { recursive: true });
+  const tempDir = path.join(process.cwd(), "temp");
+  await fs.mkdir(tempDir, { recursive: true });
 
-  const fileName = `script-${Date.now()}.${ext}`;
-  const filePath = path.join("temp", fileName);
+  const fileName = `script-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}.${ext}`;
+
+  const filePath = path.join(tempDir, fileName);
 
   await fs.writeFile(filePath, code);
 
-  const command =
-    language === "typescript" ? `npx ts-node ${filePath}` : `node ${filePath}`;
+  return new Promise((resolve) => {
+    const command = language === "typescript" ? "npx" : "node";
+    const args = language === "typescript" ? ["ts-node", filePath] : [filePath];
 
-  return new Promise((resolve, reject) => {
-    exec(command, { timeout: 3000 }, async (err, stdout, stderr) => {
-      await fs.unlink(filePath);
+    const child = spawn(command, args, {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
 
-      if (err) {
-        let errorMessage = stderr || err.message;
+    let stdout = "";
+    let stderr = "";
 
-        // remove file paths
-        errorMessage = errorMessage.replace(
-          /file:\/\/.*temp\/.*\.\w+:\d+/g,
-          "",
-        );
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
 
-        // remove node internal stack traces
-        errorMessage = errorMessage
-          .split("\n")
-          .filter((line) => !line.includes("node:internal"))
-          .join("\n");
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
 
-        // remove Node version line
-        errorMessage = errorMessage.replace(/Node\.js v\d+\.\d+\.\d+/g, "");
+    child.on("error", async () => {
+      await fs.unlink(filePath).catch(() => {});
+      resolve("Failed to execute program");
+    });
 
-        // keep only actual error line
-        const errorLine = errorMessage
-          .split("\n")
-          .find((line) => line.includes("Error"));
+    // send stdin
+    if (stdin) {
+      child.stdin.write(stdin + "\n");
+    }
 
-        resolve(errorLine || errorMessage.trim());
-        return;
+    child.stdin.end();
+
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      stderr = "Execution timed out (3s limit)";
+    }, 3000);
+
+    child.on("close", async () => {
+      clearTimeout(timeout);
+
+      await fs.unlink(filePath).catch(() => {});
+
+      let result = "";
+
+      if (stderr) {
+        const lines = stderr.split("\n");
+
+        const cleanError =
+          lines.find((line) =>
+            /(SyntaxError|ReferenceError|TypeError|Error)/.test(line),
+          ) || lines[0];
+
+        result = cleanError.trim();
+      } else {
+        result = stdout.trim();
       }
 
-      resolve(stdout);
+      resolve(result || "Program executed successfully");
     });
   });
 };
@@ -127,51 +154,62 @@ const joinRoom = asyncHandler(async (req, res) => {
 });
 
 const runCode = asyncHandler(async (req, res) => {
-  const { language, code, stdin } = req.body;
+  const { roomId } = req.params;
+  const { language, code, stdin, executedBy } = req.body;
 
   if (!language || !code) {
     throw new ApiError(400, "both fields are required");
   }
 
+  let data;
+
+  // LOCAL EXECUTION (JS / TS)
   if (language === "javascript" || language === "typescript") {
-    const output = await runLocalCode(language, code);
+    const output = await runLocalCode(language, code, stdin);
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { output, memory: null, cpuTime: null },
-          "code executed successfully",
-        ),
-      );
+    data = {
+      output,
+      memory: null,
+      cpuTime: null,
+    };
+  } else {
+    const mappedLanguage = languageMap[language];
+
+    if (!mappedLanguage) {
+      throw new ApiError(400, "language not supported");
+    }
+
+    const response = await api.post("/execute", {
+      clientId: process.env.JDOODLE_CLIENT_ID,
+      clientSecret: process.env.JDOODLE_CLIENT_SECRET,
+      script: code,
+      stdin: stdin || "",
+      language: mappedLanguage,
+      versionIndex: "0",
+    });
+
+    if (!response) {
+      throw new ApiError(502, "something wrong while executing the code");
+    }
+
+    data = {
+      output: response.data.output,
+      memory: response.data.memory,
+      cpuTime: response.data.cpuTime,
+    };
   }
 
-  const mappedLangauage = languageMap[language];
-
-  if (!mappedLangauage) {
-    throw new ApiError(400, "language not supported");
+  //Broadcast output to all users in room
+  if (roomId) {
+    const io = getIO();
+    io.to(roomId).emit("code-output", {
+      ...data,
+      executedBy: executedBy || "Guest",
+      stdin: stdin || "",
+    });
   }
 
-  const response = await api.post("/execute", {
-    clientId: process.env.JDOODLE_CLIENT_ID,
-    clientSecret: process.env.JDOODLE_CLIENT_SECRET,
-    script: code,
-    stdin: stdin || "",
-    language: mappedLangauage,
-    versionIndex: "0",
-  });
-
-  if (!response) {
-    throw new ApiError(502, "something wrong while executing the code");
-  }
-
-  const data = {
-    output: response.data.output,
-    memory: response.data.memory,
-    cpuTime: response.data.cpuTime,
-  };
-
+  // REST response
   res
     .status(200)
     .json(new ApiResponse(200, data, "code executed successfully"));
