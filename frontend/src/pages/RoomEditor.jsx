@@ -13,6 +13,7 @@ import { toast } from "react-hot-toast";
 import DialogueBox from "@/components/DialogueBox.jsx";
 import { runCode } from "@/api/room.api.js";
 import { getFileExtension } from "@/utils/getFileExtension.js";
+import { getSingleRoomDetails } from "@/api/room.api.js";
 
 function RoomEditor() {
   const { roomId } = useParams();
@@ -42,6 +43,10 @@ function RoomEditor() {
   const [participants, setParticipants] = useState([]);
   const [isOutputOpen, setIsOutputOpen] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
+
+  // room details
+  const [isClosed, setIsClosed] = useState(false);
+  const [roomData, setRoomData] = useState(null);
 
   const navigate = useNavigate();
 
@@ -83,6 +88,26 @@ function RoomEditor() {
     };
   }, []);
 
+  // fetch room details
+  useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const res = await getSingleRoomDetails(roomId);
+        const room = res.data.data;
+
+        setRoomData(room);
+
+        if (!room.isActive) {
+          setIsClosed(true);
+        }
+      } catch (error) {
+        console.error("Failed to load room", error);
+      }
+    };
+
+    fetchRoom();
+  }, [roomId]);
+
   useEffect(() => {
     socket.on("participants", (item) => {
       setParticipants(item);
@@ -104,9 +129,15 @@ function RoomEditor() {
 
   // connect socket once
   useEffect(() => {
+    if (isClosed) {
+      socket.disconnect();
+      return;
+    }
+
     if (!socket.connected) socket.connect();
+
     return () => socket.disconnect();
-  }, []);
+  }, [isClosed]);
 
   // listeners
   useEffect(() => {
@@ -169,6 +200,10 @@ function RoomEditor() {
   useEffect(() => {
     if (loading) return;
 
+    if (!socket || !socket.connected) return;
+
+    if (isClosed) return;
+
     const guestId = getGuestId();
     const userId = user?._id || guestId;
 
@@ -177,7 +212,7 @@ function RoomEditor() {
       userId,
       name: user?.username,
     });
-  }, [roomId, user, loading]);
+  }, [roomId, user, loading, isClosed]);
 
   // code output
   useEffect(() => {
@@ -301,7 +336,7 @@ function RoomEditor() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isSynced) {
+  if (!isSynced && !isClosed) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-400">
         Loading room...
@@ -313,7 +348,7 @@ function RoomEditor() {
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-950 text-zinc-100">
       <EditorNavbar
         roomId={roomId}
-        language={language}
+        language={!isClosed ? language : roomData?.language || "javascript"}
         onLanguageChange={handleLangChange}
         onLeaveRoom={handleLeaveRoom}
         isOwner={isOwner}
@@ -322,52 +357,67 @@ function RoomEditor() {
         onCodeRun={handleRunCode}
         onDownload={handleDownloadCode}
         onToggleOutput={() => setIsOutputOpen((current) => !current)}
+        isClosed={isClosed}
       />
-      <DialogueBox
-        open={openCloseRoomDialog}
-        onOpenChange={setOpenCloseRoomDialog}
-        onConfirm={confirmCloseRoom}
-        title={"Close the room?"}
-        desc={"This will remove everyone from the room."}
-        action={"Close Room"}
-      />
+      {!isClosed && (
+        <div>
+          <DialogueBox
+            open={openCloseRoomDialog}
+            onOpenChange={setOpenCloseRoomDialog}
+            onConfirm={confirmCloseRoom}
+            title={"Close the room?"}
+            desc={"This will remove everyone from the room."}
+            action={"Close Room"}
+          />
 
-      <DialogueBox
-        open={openKickUserDialog}
-        onOpenChange={setKickUserDialog}
-        onConfirm={confirmKickUser}
-        title={`Kick ${targetUser?.name}?`}
-        desc="This user will be removed from the room."
-        action="Kick User"
-      />
+          <DialogueBox
+            open={openKickUserDialog}
+            onOpenChange={setKickUserDialog}
+            onConfirm={confirmKickUser}
+            title={`Kick ${targetUser?.name}?`}
+            desc="This user will be removed from the room."
+            action="Kick User"
+          />
+        </div>
+      )}
 
       <main className="flex min-h-0 flex-1">
-        <aside className="flex w-1/5 min-w-64 flex-col border-r border-zinc-800 bg-zinc-950 p-3">
-          <div className="min-h-0 flex-1">
-            <ParticipantsPanel
-              participants={participants}
-              currentUserId={currentUserId}
-              isOwner={isOwner}
-              onKickUser={handleKickUser}
-            />
-          </div>
+        {!isClosed && (
+          <aside className="flex w-1/5 min-w-64 flex-col border-r border-zinc-800 bg-zinc-950 p-3">
+            <div className="min-h-0 flex-1">
+              <ParticipantsPanel
+                participants={participants}
+                currentUserId={currentUserId}
+                isOwner={isOwner}
+                onKickUser={handleKickUser}
+              />
+            </div>
 
-          <Separator className="my-3 bg-zinc-800" />
+            <Separator className="my-3 bg-zinc-800" />
 
-          <div className="min-h-0 flex-1">
-            <TimelinePanel events={events} />
-          </div>
-        </aside>
+            <div className="min-h-0 flex-1">
+              <TimelinePanel events={events} />
+            </div>
+          </aside>
+        )}
 
         <section className="flex min-w-0 flex-1 flex-col bg-zinc-950 p-3">
+          {isClosed && (
+            <div className="mb-3 rounded-md bg-zinc-800 px-3 py-2 text-sm text-zinc-400">
+              🔒 This room is closed. You are viewing a read-only snapshot.
+            </div>
+          )}
           <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900">
             <CodeEditor
-              language={language}
-              value={code}
-              onChange={handleCodeChange}
-              socket={socket}
+              language={
+                !isClosed ? language : roomData?.language || "javascript"
+              }
+              value={!isClosed ? code : roomData?.code || ""}
+              onChange={!isClosed ? handleCodeChange : undefined}
+              socket={!isClosed ? socket : null}
               roomId={roomId}
               participants={participants}
+              readOnly={isClosed}
             />
           </div>
           <AnimatePresence initial={false}>

@@ -8,6 +8,7 @@ function CodeEditor({
   socket,
   roomId,
   participants,
+  readOnly = false,
 }) {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -30,14 +31,14 @@ function CodeEditor({
   // throttled socket emitter
   const emitCursorMove = useRef(
     throttle((payload) => {
-      socket.emit("cursor-move", payload);
+      socket?.emit("cursor-move", payload);
     }, 80),
   ).current;
 
   // Detect cursor + selection movement
   const setupCursorTracking = (editor) => {
     editor.onDidChangeCursorSelection((event) => {
-      if (!socket) return;
+      if (!socket || readOnly) return;
 
       const position = event.selection.getPosition();
       const selection = event.selection;
@@ -69,14 +70,15 @@ function CodeEditor({
     const selectionClass = `selection-${userId}`;
 
     const userIndex = participants.findIndex((p) => p.userId === userId);
-    const offset = userIndex * 3; // pixel offset
+    const offset = userIndex * 3;
 
+    // create style once
     if (!document.getElementById(cursorClass)) {
       const style = document.createElement("style");
 
       style.id = cursorClass;
       style.innerHTML = `
-          .${cursorClass}::before {
+        .${cursorClass}::before {
           content: "";
           border-left: 2px solid ${color};
           height: 1.2em;
@@ -87,14 +89,13 @@ function CodeEditor({
         .${selectionClass} {
           background-color: ${color}66;
         }
-        `;
+      `;
 
       document.head.appendChild(style);
     }
 
     const decorations = [];
 
-    // Cursor decoration
     if (cursor) {
       decorations.push({
         range: new monaco.Range(
@@ -109,7 +110,6 @@ function CodeEditor({
       });
     }
 
-    // Selection decoration
     if (selection) {
       decorations.push({
         range: new monaco.Range(
@@ -125,7 +125,6 @@ function CodeEditor({
     }
 
     const oldDecorations = remoteDecorations.current[userId] || [];
-
     const newDecorations = editor.deltaDecorations(oldDecorations, decorations);
 
     remoteDecorations.current[userId] = newDecorations;
@@ -133,16 +132,14 @@ function CodeEditor({
 
   // Listen for remote cursor updates
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || readOnly) return;
 
-    socket.on("cursor-update", (data) => {
-      renderRemoteCursor(data);
-    });
+    socket.on("cursor-update", renderRemoteCursor);
 
     return () => {
-      socket.off("cursor-update");
+      socket.off("cursor-update", renderRemoteCursor);
     };
-  }, [socket]);
+  }, [socket, readOnly, participants]);
 
   // Remove stale cursors when participants change
   useEffect(() => {
@@ -159,10 +156,23 @@ function CodeEditor({
     });
   }, [participants]);
 
+  // Update language dynamically (no editor remount)
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+
+    if (!editor || !monaco) return;
+
+    const model = editor.getModel();
+    if (!model) return;
+
+    monaco.editor.setModelLanguage(model, language);
+  }, [language]);
+
   return (
     <MonacoEditor
       height="100%"
-      language={language}
+      defaultLanguage={language}
       value={value}
       theme="vs-dark"
       loading={
@@ -173,46 +183,25 @@ function CodeEditor({
       onMount={(editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
-        setupCursorTracking(editor);
+
+        if (!readOnly) {
+          setupCursorTracking(editor);
+        }
       }}
-      onChange={(nextValue) => onChange(nextValue || "")}
+      onChange={(nextValue) => {
+        if (readOnly) return;
+        onChange?.(nextValue || "");
+      }}
       options={{
         fontSize: 14,
         minimap: { enabled: false },
         automaticLayout: true,
         scrollBeyondLastLine: false,
         padding: { top: 16 },
+        readOnly: readOnly,
       }}
     />
   );
 }
 
 export default CodeEditor;
-
-// import MonacoEditor from "@monaco-editor/react";
-
-// function CodeEditor({ language, value, onChange }) {
-//   return (
-//     <MonacoEditor
-//       height="100%"
-//       language={language}
-//       value={value}
-//       theme="vs-dark"
-//       loading={
-//         <div className="flex h-full items-center justify-center text-zinc-400">
-//           Loading editor...
-//         </div>
-//       }
-//       onChange={(nextValue) => onChange(nextValue || "")}
-//       options={{
-//         fontSize: 14,
-//         minimap: { enabled: false },
-//         automaticLayout: true,
-//         scrollBeyondLastLine: false,
-//         padding: { top: 16 },
-//       }}
-//     />
-//   );
-// }
-
-// export default CodeEditor;

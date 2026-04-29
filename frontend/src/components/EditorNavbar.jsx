@@ -43,25 +43,35 @@ function AnimatedButton({ children }) {
   );
 }
 
-function NavbarIconButton({ label, className, icon, onClick }) {
+function NavbarIconButton({
+  label,
+  className,
+  icon,
+  onClick,
+  isClosed = false,
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span>
+        <span className={isClosed ? "cursor-not-allowed" : "cursor-pointer"}>
           <AnimatedButton>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className={`${className} cursor-pointer`}
               onClick={onClick}
+              disabled={isClosed}
+              className={`${className} disabled:opacity-50`}
             >
               {icon}
             </Button>
           </AnimatedButton>
         </span>
       </TooltipTrigger>
-      <TooltipContent sideOffset={6}>{label}</TooltipContent>
+
+      <TooltipContent sideOffset={6}>
+        {isClosed ? "Room is closed" : label}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -77,6 +87,7 @@ function EditorNavbar({
   isOwner,
   isOutputOpen,
   onToggleOutput,
+  isClosed,
 }) {
   const inviteLink = `${window.location.origin}/room/${roomId}`;
 
@@ -97,11 +108,12 @@ function EditorNavbar({
 
       <div className="flex items-center gap-2">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger disabled={isClosed} asChild>
             <span>
               <AnimatedButton>
                 <Button
                   type="button"
+                  disabled={isClosed}
                   variant="outline"
                   className="min-w-36 justify-between border-zinc-800 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
                 >
@@ -137,6 +149,7 @@ function EditorNavbar({
           icon={<Play className="size-4 text-white fill-white" />}
           className="bg-emerald-500/70 hover:bg-emerald-500/90 border-emerald-500/30"
           onClick={onCodeRun}
+          isClosed={isClosed}
         />
 
         <NavbarIconButton
@@ -151,6 +164,7 @@ function EditorNavbar({
           icon={<TerminalSquare className="size-4 text-white" />}
           onClick={onToggleOutput}
           className="bg-violet-500/70 hover:bg-violet-500/90 border-violet-500/30"
+          isClosed={isClosed}
         />
 
         <NavbarIconButton
@@ -158,6 +172,7 @@ function EditorNavbar({
           icon={<Copy className="size-4 text-white" />}
           onClick={() => copyText(roomId)}
           className="bg-sky-500/70 hover:bg-sky-500/90 border-sky-500/30"
+          isClosed={isClosed}
         />
 
         <NavbarIconButton
@@ -165,6 +180,7 @@ function EditorNavbar({
           icon={<Link className="size-4 text-white" />}
           onClick={() => copyText(inviteLink)}
           className="bg-zinc-500/70 hover:bg-zinc-500/90 border-zinc-500/30"
+          isClosed={isClosed}
         />
 
         <NavbarIconButton
@@ -180,6 +196,7 @@ function EditorNavbar({
             icon={<XCircle className="size-4 text-white" />}
             onClick={onCloseRoom}
             className="bg-rose-600/70 hover:bg-rose-600/90 border-rose-600/30"
+            isClosed={isClosed}
           />
         )}
       </div>
