@@ -8,16 +8,21 @@ import EditorNavbar from "@/components/EditorNavbar";
 import ParticipantsPanel from "@/components/ParticipantsPanel";
 import TimelinePanel from "@/components/TimelinePanel";
 import { Separator } from "@/components/ui/separator";
-import { timelineEvents } from "@/data/mockData";
 import getGuestId from "@/utils/getGuestId.js";
 import { toast } from "react-hot-toast";
 import DialogueBox from "@/components/DialogueBox.jsx";
+import { runCode } from "@/api/room.api.js";
 
 function RoomEditor() {
   const { roomId } = useParams();
 
   // for kicking user
   const [targetUser, setTargetUser] = useState({});
+
+  // code execution history
+  const [executions, setExecutions] = useState([]);
+  const [stdin, setStdin] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
 
   // dialogue box states
   const [openCloseRoomDialog, setOpenCloseRoomDialog] = useState(false);
@@ -39,7 +44,19 @@ function RoomEditor() {
 
   const { user, loading } = useUsercontext();
 
+  // auto scroll terminal to bottom on new output
+  const terminalRef = useRef(null);
+
+  useEffect(() => {
+    terminalRef.current?.scrollTo({
+      top: terminalRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [executions]);
+
   const currentUserId = user?._id || getGuestId();
+
+  const currentUser = participants?.find((p) => p.userId === currentUserId);
 
   const isOwner =
     participants?.find((p) => p.userId === currentUserId)?.isOwner ?? false;
@@ -159,6 +176,25 @@ function RoomEditor() {
     });
   }, [roomId, user, loading]);
 
+  // code output
+  useEffect(() => {
+    socket.on("code-output", ({ output, executedBy, stdin }) => {
+      const execution = {
+        id: Date.now(),
+        output,
+        executedBy,
+        stdin,
+        timestamp: Date.now(),
+      };
+
+      setExecutions((prev) => [...prev.slice(-4), execution]);
+      setIsOutputOpen(true);
+      setIsRunning(false);
+    });
+
+    return () => socket.off("code-output");
+  }, []);
+
   const handleCodeChange = (value) => {
     if (isRemoteChange.current) {
       isRemoteChange.current = false;
@@ -228,6 +264,24 @@ function RoomEditor() {
     setOpenCloseRoomDialog(false);
   };
 
+  const handleRunCode = async () => {
+    if (isRunning) return;
+    try {
+      setIsRunning(true);
+      await runCode(roomId, {
+        language: languageRef.current,
+        code: codeRef.current,
+        stdin,
+        executedBy: currentUser?.name,
+      });
+      setIsOutputOpen(true);
+    } catch (error) {
+      console.log("Error running code: ", error);
+      toast.error(error?.response?.data || "Failed to run code");
+      setIsRunning(false);
+    }
+  };
+
   if (!isSynced) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-400">
@@ -246,6 +300,7 @@ function RoomEditor() {
         isOwner={isOwner}
         onCloseRoom={handleCloseRoom}
         isOutputOpen={isOutputOpen}
+        onCodeRun={handleRunCode}
         onToggleOutput={() => setIsOutputOpen((current) => !current)}
       />
       <DialogueBox
@@ -295,19 +350,87 @@ function RoomEditor() {
               participants={participants}
             />
           </div>
-
           <AnimatePresence initial={false}>
             {isOutputOpen && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 200, opacity: 1 }}
+                animate={{ height: "40vh", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.25, ease: "easeInOut" }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 h-47 rounded-lg border border-zinc-800 bg-black p-4 font-mono text-sm text-emerald-300">
-                  <p className="text-zinc-500">&gt; Program Output</p>
-                  <p className="mt-3 text-zinc-300">Ready to run your code.</p>
+                <div className="mt-3 flex h-[40vh] flex-col rounded-lg border border-zinc-800 bg-black font-mono text-sm text-emerald-300">
+                  {" "}
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2 text-zinc-500">
+                    <span>&gt; Program Output</span>
+
+                    <button
+                      onClick={() => setExecutions([])}
+                      className="text-xs text-zinc-400 hover:text-red-400 transition"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  {/* Output history */}
+                  <div
+                    ref={terminalRef}
+                    className="flex-1 overflow-y-auto px-4 py-3 space-y-4"
+                  >
+                    {executions.map((exec) => (
+                      <div key={exec.id}>
+                        {/* Execution header */}
+                        <p className="text-xs text-zinc-500">
+                          {new Date(exec.timestamp).toLocaleTimeString()} ⚡{" "}
+                          {exec.executedBy}
+                        </p>
+
+                        {/* stdin preview */}
+                        {exec.stdin && (
+                          <>
+                            <p className="text-[11px] text-zinc-500 mt-1">
+                              Input:
+                            </p>
+                            <pre className="whitespace-pre-wrap text-yellow-300">
+                              {exec.stdin}
+                            </pre>
+                          </>
+                        )}
+
+                        {/* output */}
+                        <p className="text-[11px] text-zinc-500 mt-1">
+                          Output:
+                        </p>
+                        <pre className="whitespace-pre-wrap text-zinc-300">
+                          {exec.output}
+                        </pre>
+                      </div>
+                    ))}
+
+                    {isRunning && (
+                      <p className="text-yellow-400">▶ Running...</p>
+                    )}
+
+                    {executions.length === 0 && !isRunning && (
+                      <p className="text-zinc-500">Ready to run your code.</p>
+                    )}
+                  </div>
+                  {/* stdin input */}
+                  <div className="border-t border-zinc-800 p-2">
+                    <textarea
+                      value={stdin}
+                      onChange={(e) => setStdin(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleRunCode();
+                        }
+                      }}
+                      placeholder="Program input (stdin)"
+                      className="w-full bg-zinc-900 text-zinc-300 text-xs px-2 py-1 rounded outline-none resize-none"
+                      rows={2}
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
