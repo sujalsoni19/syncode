@@ -81,7 +81,7 @@ const socketManager = (io) => {
 
           try {
             await Room.findOneAndUpdate(
-              { roomId },
+              { roomId, isActive: true },
               { code, language, isActive: false, closedAt: new Date() },
             );
           } catch (err) {

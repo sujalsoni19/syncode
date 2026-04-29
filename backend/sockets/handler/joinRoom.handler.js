@@ -9,12 +9,16 @@ import { roomCreated, userJoined, getTimeline } from "../../memory/timeline.js";
 import generateGuestName from "../../utils/generateGuestName.js";
 import generateColor from "../../utils/generateColors.js";
 
+import { latestCode } from "./codeChange.handler.js";
+import { latestLanguage } from "./languageChange.handler.js";
+
 const joinRoom = (socket, io) => {
   socket.on("join-room", ({ roomId, userId, name }) => {
-    const participants = getParticipants(roomId);
 
+    const participants = getParticipants(roomId);
     const alreadyJoined = participants.find((p) => p.userId === userId);
 
+    // ROOM FULL CHECK
     if (!alreadyJoined && participants.length >= 10) {
       socket.emit("room-full");
       return;
@@ -33,10 +37,23 @@ const joinRoom = (socket, io) => {
 
       console.log("user reconnected:", socket.id);
 
+      // send timeline history
       socket.emit("timeline-history", getTimeline(roomId));
-      socket.to(roomId).emit("request-sync-code", socket.id);
-      socket.nsp.to(roomId).emit("participants", getParticipants(roomId));
-      console.log(getParticipants(roomId));
+
+      const roomParticipants = getParticipants(roomId);
+
+      // if other users exist → ask them to sync
+      if (roomParticipants.length > 1) {
+        socket.to(roomId).emit("request-sync-code", socket.id);
+      } 
+      // fallback → send server stored code
+      else if (latestCode[roomId]) {
+        socket.emit("sync-code", { code: latestCode[roomId], language: latestLanguage[roomId] || "javascript" });
+      }
+
+      socket.nsp.to(roomId).emit("participants", roomParticipants);
+
+      console.log(roomParticipants);
 
       return;
     }
@@ -55,6 +72,8 @@ const joinRoom = (socket, io) => {
 
     addParticipant(roomId, participant);
 
+    const updatedParticipants = getParticipants(roomId);
+
     let event;
 
     // ROOM CREATION
@@ -72,11 +91,20 @@ const joinRoom = (socket, io) => {
     // send timeline history to the new user
     socket.emit("timeline-history", getTimeline(roomId));
 
-    // request existing users to sync code
-    socket.to(roomId).emit("request-sync-code", socket.id);
+    // CODE SYNC LOGIC
+    if (updatedParticipants.length > 1) {
+      // ask existing users to sync code
+      socket.to(roomId).emit("request-sync-code", socket.id);
+    } else {
+      // only user in room → send stored code
+      if (latestCode[roomId]) {
+        socket.emit("sync-code", { code: latestCode[roomId], language: latestLanguage[roomId] || "javascript" });
+      }
+    }
 
-    socket.nsp.to(roomId).emit("participants", getParticipants(roomId));
-    console.log(getParticipants(roomId));
+    socket.nsp.to(roomId).emit("participants", updatedParticipants);
+
+    console.log(updatedParticipants);
   });
 };
 

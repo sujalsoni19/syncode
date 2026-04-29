@@ -40,7 +40,7 @@ const leaveRoom = (socket, io) => {
       const language = latestLanguage[roomId] ?? "javascript";
 
       await Room.findOneAndUpdate(
-        { roomId },
+        { roomId, isActive: true },
         { code, language, isActive: false, closedAt: new Date() },
       );
 
