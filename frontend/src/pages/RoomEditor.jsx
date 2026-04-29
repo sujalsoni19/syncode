@@ -12,6 +12,7 @@ import getGuestId from "@/utils/getGuestId.js";
 import { toast } from "react-hot-toast";
 import DialogueBox from "@/components/DialogueBox.jsx";
 import { runCode } from "@/api/room.api.js";
+import { getFileExtension } from "@/utils/getFileExtension.js";
 
 function RoomEditor() {
   const { roomId } = useParams();
@@ -31,7 +32,9 @@ function RoomEditor() {
   const [events, setEvents] = useState([]);
 
   const [language, setLanguage] = useState("javascript");
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(
+    "// Welcome to Syncode!\n// Start coding and collaborate in real-time.",
+  );
   const debounceRef = useRef(null);
   const codeRef = useRef("");
   const languageRef = useRef("javascript");
@@ -282,6 +285,22 @@ function RoomEditor() {
     }
   };
 
+  const handleDownloadCode = () => {
+    const blob = new Blob([codeRef.current], { type: "text/plain" });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `syncode.${getFileExtension(languageRef.current)}`;
+
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (!isSynced) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-400">
@@ -301,6 +320,7 @@ function RoomEditor() {
         onCloseRoom={handleCloseRoom}
         isOutputOpen={isOutputOpen}
         onCodeRun={handleRunCode}
+        onDownload={handleDownloadCode}
         onToggleOutput={() => setIsOutputOpen((current) => !current)}
       />
       <DialogueBox

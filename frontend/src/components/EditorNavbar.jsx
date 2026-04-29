@@ -72,6 +72,8 @@ function EditorNavbar({
   onLanguageChange,
   onLeaveRoom,
   onCloseRoom,
+  onCodeRun,
+  onDownload,
   isOwner,
   isOutputOpen,
   onToggleOutput,
@@ -134,11 +136,13 @@ function EditorNavbar({
           label="Run"
           icon={<Play className="size-4 text-white fill-white" />}
           className="bg-emerald-500/70 hover:bg-emerald-500/90 border-emerald-500/30"
+          onClick={onCodeRun}
         />
 
         <NavbarIconButton
           label="Download"
           icon={<Download className="size-4 text-white" />}
+          onClick={onDownload}
           className="bg-amber-500/70 hover:bg-amber-500/90 border-amber-500/30"
         />
 
