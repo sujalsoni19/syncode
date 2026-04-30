@@ -8,13 +8,15 @@ export const UserProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async() => {
+    const fetchUser = async () => {
       try {
         const res = await getCurrentUser();
         console.log(res);
         setUser(res?.data?.data);
       } catch (error) {
-        console.log("error in fetching user: ", error);
+        if (error.response?.status !== 401) {
+          console.log("error in fetching user: ", error);
+        }
         setUser(null);
       } finally {
         setLoading(false);
