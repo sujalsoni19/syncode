@@ -36,7 +36,7 @@ const leaveRoom = (socket, io) => {
     io.to(roomId).emit("participants", updatedParticipants);
 
     if (updatedParticipants.length === 0) {
-      const code = latestCode[roomId] ?? " ";
+      const code = latestCode[roomId] ?? "// Welcome to Syncode!\n// Start coding and collaborate in real-time.";
       const language = latestLanguage[roomId] ?? "javascript";
 
       await Room.findOneAndUpdate(

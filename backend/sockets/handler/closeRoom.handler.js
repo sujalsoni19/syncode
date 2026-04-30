@@ -21,7 +21,7 @@ const closeRoom = (socket, io) => {
       message: "The host closed the room",
     });
 
-    const code = latestCode[roomId] ?? " ";
+    const code = latestCode[roomId] ?? "// Welcome to Syncode!\n// Start coding and collaborate in real-time.";
     const language = latestLanguage[roomId] ?? "javascript";
 
     try {
