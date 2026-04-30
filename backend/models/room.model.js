@@ -15,7 +15,7 @@ const roomSchema = new Schema(
     },
     code: {
       type: String,
-      default: "",
+      default: "// Welcome to Syncode!\n// Start coding and collaborate in real-time.",
     },
     isActive: {
       type: Boolean,

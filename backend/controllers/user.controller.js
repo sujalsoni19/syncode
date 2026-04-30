@@ -149,8 +149,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized ");
   }
 
-  console.log("incomingRefreshToken:", incomingRefreshToken);
-
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
