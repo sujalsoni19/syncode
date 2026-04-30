@@ -8,3 +8,12 @@ export const joinRoom = (roomId) =>
 
 export const runCode = (roomId, data) =>
     api.post(`/api/v1/rooms/room/${roomId}/run`, data);
+
+export const getRoomDetails = () =>
+    api.get("/api/v1/rooms");
+
+export const getSingleRoomDetails = (roomId) =>
+    api.get(`/api/v1/rooms/room/${roomId}`);
+
+export const deleteRoom = (roomId) =>
+    api.delete(`/api/v1/rooms/room/${roomId}`);

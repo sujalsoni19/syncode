@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, DoorOpen, Clock, Code2, Sparkles } from "lucide-react";
+import { Plus, DoorOpen, Sparkles } from "lucide-react";
 
 import { useUsercontext } from "@/context/userContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { createRoom, joinRoom } from "@/api/room.api.js";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import Roomhistory from "@/components/Roomhistory.jsx";
 
 export default function Home() {
   const { user } = useUsercontext();
@@ -160,38 +161,8 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Recent Rooms Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="mt-12"
-      >
-        <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold text-white">
-          <Clock className="h-5 w-5 text-zinc-400" />
-          Recent Rooms
-        </h2>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Example card */}
-          <Card className="transition hover:border-emerald-300/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Code2 className="h-4 w-4 text-emerald-300" />
-                room-3fa9c1b2
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="flex items-center justify-between">
-              <span className="text-xs text-zinc-400">Last active 2h ago</span>
-
-              <Button size="sm" variant="outline">
-                Open
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </motion.div>
+      <Roomhistory />
+      
     </div>
   );
 }
