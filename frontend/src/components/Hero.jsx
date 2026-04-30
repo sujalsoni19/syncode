@@ -1,9 +1,11 @@
 import { motion } from "framer-motion"
 import { ArrowRight, DoorOpen } from "lucide-react"
-
+import { useNavigate} from "react-router-dom";
+import { JoinRoomDialog } from "./JoinRoomDialogue.jsx";
 import { Button } from "./ui/button"
 
 export function Hero() {
+  const navigate = useNavigate();
   return (
     <section className="mx-auto flex min-h-[calc(82vh-96px)] w-full max-w-6xl items-center px-5 pb-14 pt-10 sm:px-6 lg:pb-20">
       <motion.div
@@ -24,16 +26,13 @@ export function Hero() {
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-            <Button size="lg" className="w-full sm:w-auto">
+            <Button onClick={() => navigate("/login")} size="lg" className="w-full sm:w-auto">
               Create Room
               <ArrowRight className="h-4 w-4" />
             </Button>
           </motion.div>
           <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-            <Button variant="outline" size="lg" className="w-full sm:w-auto">
-              <DoorOpen className="h-4 w-4" />
-              Join Room
-            </Button>
+             <JoinRoomDialog />
           </motion.div>
         </div>
         <p className="mt-4 text-sm text-zinc-500">Create rooms after signing in. Join with a code anytime.</p>
