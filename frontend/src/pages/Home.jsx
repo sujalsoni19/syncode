@@ -23,7 +23,6 @@ export default function Home() {
   const createRoomHandler = async () => {
     try {
       const res = await createRoom();
-      console.log(res);
       const roomId = res?.data?.data?.roomId;
       navigate(`/room/${roomId}`);
     } catch (error) {

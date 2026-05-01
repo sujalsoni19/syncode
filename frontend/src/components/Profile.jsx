@@ -28,7 +28,6 @@ function Profile() {
   const handleLogout = async () => {
     try {
       const res = await logoutUser();
-      console.log(res);
       setUser(null);
       navigate("/login");
     } catch (error) {

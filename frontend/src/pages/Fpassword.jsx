@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 import Loader from "../components/Loader.jsx"
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +28,6 @@ export default function Fpassword() {
       setLoading(true);
       setServerError("");
       const res = await forgotPassword(data);
-    //   console.log(res);
       reset();
       setShowMessage(true);
       setLoading(false);

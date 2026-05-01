@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link } from "react-router-dom";
 
 import { Logo } from "./Logo";
 import { Button } from "./ui/button";

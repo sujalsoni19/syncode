@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUsercontext } from "@/context/userContext.jsx";
@@ -43,7 +43,6 @@ export default function UpdateProfile() {
     try {
       setServerError("");
       const res = await updateUserProfile(data);
-      console.log(res);
       const updatedUser = res?.data?.data;
 
       setUser(updatedUser); // update auth state first

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUsercontext } from "@/context/userContext.jsx";
@@ -31,13 +31,11 @@ export default function Login() {
     try {
       setServerError("");
       const res = await loginUser(data);
-      console.log(res);
       reset();
       toast.success("Logged in successfully");
       navigate("/home");
       setUser(res?.data?.data?.user);
     } catch (error) {
-      console.log("error while logging user: ", error);
       setServerError(error.response?.data?.message || "something went wrong");
     }
   };

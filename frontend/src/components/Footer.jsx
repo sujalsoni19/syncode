@@ -1,5 +1,5 @@
 import { SiGithub } from "@icons-pack/react-simple-icons";
-import { useLocation, Link } from "react-router";
+import { useLocation, Link } from "react-router-dom";
 import { useUsercontext } from "@/context/userContext";
 import { Logo } from "./Logo";
 

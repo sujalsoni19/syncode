@@ -1,7 +1,7 @@
 import React from 'react'
 import {NavbarAuth} from "./NavbarAuth.jsx"
 import { Footer } from './Footer.jsx'
-import { Outlet } from 'react-router'
+import { Outlet } from 'react-router-dom'
 
 function AuthLayout() {
   return (

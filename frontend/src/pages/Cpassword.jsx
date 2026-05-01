@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { changePassword } from "@/api/user.api.js";
@@ -34,7 +34,6 @@ export default function Cpassword() {
     try {
       setServerError("");
       const res = await changePassword(data);
-      console.log(res);
       reset();
       toast.success("Password changed successfully");
       navigate("/home");

@@ -11,7 +11,6 @@ export const UserProvider = ({ children }) => {
     const fetchUser = async () => {
       try {
         const res = await getCurrentUser();
-        console.log(res);
         setUser(res?.data?.data);
       } catch (error) {
         if (error.response?.status !== 401) {
