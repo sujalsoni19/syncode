@@ -1,17 +1,12 @@
-import { getTransporter } from "./emailTransporter.js";
+import { Resend } from "resend";
 
-export const sendEmail = async ({ to, subject, text, html }) => {
-  const transporter = getTransporter();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const mailOptions = {
-    from: `"Syncode" <${process.env.SMTP_USER}>`,
+export const sendEmail = async ({ to, subject, html }) => {
+  await resend.emails.send({
+    from: "Syncode <onboarding@resend.dev>",
     to,
     subject,
-    text,
-    html,
-  };
-
-  const info = await transporter.sendMail(mailOptions);
-
-  return info;
+    html
+  });
 };
