@@ -9,10 +9,27 @@ import { resetPasswordTemplate } from "../utils/emailTemplate.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
-const options = {
+const accessTokenOptions = {
   httpOnly: true,
   secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  maxAge: 60 * 60 * 1000 // 60 minutes
 };
+
+const refreshTokenOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  maxAge: 10 * 24 * 60 * 60 * 1000 // 10 days
+};
+
+// none requires secure to be true, but secure cookies are not sent over http(localhost)
+
+// no age set, hence it's a session cookie and will be deleted when the browser is closed
+// const options = {
+//   httpOnly: true,
+//   secure: isProd,
+// };
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -106,8 +123,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, accessTokenOptions)
+    .cookie("refreshToken", refreshToken, refreshTokenOptions)
     .json(
       new ApiResponse(
         200,
@@ -136,8 +153,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", accessTokenOptions)
+    .clearCookie("refreshToken", refreshTokenOptions)
     .json(new ApiResponse(200, {}, "User logged out"));
 });
 
@@ -170,8 +187,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", newRefreshToken, options)
+      .cookie("accessToken", accessToken, accessTokenOptions)
+      .cookie("refreshToken", newRefreshToken, refreshTokenOptions)
       .json(
         new ApiResponse(
           200,
