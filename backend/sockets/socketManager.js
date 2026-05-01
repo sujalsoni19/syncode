@@ -1,4 +1,4 @@
-import joinRoom from "./handler/joinroom.handler.js";
+import joinRoom from "./handler/joinRoom.handler.js";
 import codeChange, { latestCode } from "./handler/codeChange.handler.js";
 import syncCode from "./handler/syncCode.handler.js";
 import languageChange, {
