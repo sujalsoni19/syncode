@@ -37,12 +37,13 @@ function RoomEditor() {
     "// Welcome to Syncode!\n// Start coding and collaborate in real-time.",
   );
   const debounceRef = useRef(null);
-  const codeRef = useRef("");
+  const codeRef = useRef(
+    "// Welcome to Syncode!\n// Start coding and collaborate in real-time.",
+  );
   const languageRef = useRef("javascript");
   const isRemoteChange = useRef(false);
   const [participants, setParticipants] = useState([]);
   const [isOutputOpen, setIsOutputOpen] = useState(false);
-  const [isSynced, setIsSynced] = useState(false);
 
   // room details
   const [isClosed, setIsClosed] = useState(false);
@@ -111,7 +112,6 @@ function RoomEditor() {
   useEffect(() => {
     socket.on("participants", (item) => {
       setParticipants(item);
-      setIsSynced(true);
     });
 
     return () => {
@@ -134,10 +134,33 @@ function RoomEditor() {
       return;
     }
 
-    if (!socket.connected) socket.connect();
-
-    return () => socket.disconnect();
+    if (!socket.connected) {
+      socket.connect();
+    }
   }, [isClosed]);
+
+  // join room
+  useEffect(() => {
+    if (loading || isClosed) return;
+
+    const joinRoom = () => {
+      socket.emit("join-room", {
+        roomId,
+        userId: user?._id || getGuestId(),
+        name: user?.username,
+      });
+    };
+
+    socket.on("connect", joinRoom);
+
+    if (socket.connected) {
+      joinRoom();
+    }
+
+    return () => {
+      socket.off("connect", joinRoom);
+    };
+  }, [roomId, user, loading, isClosed]);
 
   // listeners
   useEffect(() => {
@@ -195,24 +218,6 @@ function RoomEditor() {
 
     return () => socket.off("room-closed");
   }, [isOwner]);
-
-  // join room
-  useEffect(() => {
-    if (loading) return;
-
-    if (!socket || !socket.connected) return;
-
-    if (isClosed) return;
-
-    const guestId = getGuestId();
-    const userId = user?._id || guestId;
-
-    socket.emit("join-room", {
-      roomId,
-      userId,
-      name: user?.username,
-    });
-  }, [roomId, user, loading, isClosed]);
 
   // code output
   useEffect(() => {
@@ -336,7 +341,7 @@ function RoomEditor() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isSynced && !isClosed) {
+  if (!roomData && !isClosed) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-400">
         Loading room...

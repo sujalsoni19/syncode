@@ -70,7 +70,7 @@ function NavbarIconButton({
       </TooltipTrigger>
 
       <TooltipContent sideOffset={6}>
-        {isClosed ? "Room is closed" : label}
+        {isClosed ? "Disabled in read-only mode" : label}
       </TooltipContent>
     </Tooltip>
   );
